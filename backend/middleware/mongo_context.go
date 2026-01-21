@@ -2,8 +2,8 @@ package middleware
 
 import (
 	"context"
-	"time"
 	"github.com/gofiber/fiber/v2"
+	"time"
 )
 
 func MongoContextMiddleware(timeout time.Duration) fiber.Handler {
