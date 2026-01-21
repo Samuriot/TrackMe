@@ -71,3 +71,7 @@ export default defineConfig([
   },
 ])
 ```
+
+ShadCN
+All ShadCN components can be found in the **components/ui** folder.
+import via '@/components/ui/<filename>'
