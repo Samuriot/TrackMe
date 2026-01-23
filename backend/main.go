@@ -1,14 +1,14 @@
 package main
 
 import (
+	"github.com/gofiber/fiber/v2"
+	"github.com/samuriot/track-me/db"
+	"github.com/samuriot/track-me/middleware"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"github.com/gofiber/fiber/v2"
-	"github.com/samuriot/track-me/db"
-	"github.com/samuriot/track-me/middleware"
 )
 
 func main() {
@@ -25,10 +25,10 @@ func main() {
 	}()
 
 	app := fiber.New()
-	
+
 	app.Use(middleware.MongoContextMiddleware(5 * time.Second))
 
-	app.Get("/", func (c *fiber.Ctx) error {
+	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World!")
 	})
 
