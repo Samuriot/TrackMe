@@ -11,10 +11,10 @@ import (
 	"os"
 )
 
-var client *mongo.Client
+var database *mongo.Database
 var dbName string
 
-func Init() error {
+func Init() (*mongo.Database, error) {
 	err := godotenv.Load()
 
 	if err != nil {
@@ -32,25 +32,28 @@ func Init() error {
 
 	client, err := mongo.Connect(opts)
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("mongo connect error: %w", err)
 	}
 
+	// Ping the database
 	if err := client.Ping(context.TODO(), readpref.Primary()); err != nil {
-		return err
+		return nil, fmt.Errorf("mongo ping error: %w", err)
 	}
 
-	fmt.Println("Pinged your deployment. You successfully connected to MongoDB!")
-	return nil
+	// Store the database globally
+	database = client.Database(dbName)
+	return database, nil
 }
 
-// Close gracefully disconnects the MongoDB client
+// Close disconnects the MongoDB client
 func Close() error {
-	if client == nil {
+	if database == nil {
 		return nil
 	}
-	return client.Disconnect(context.Background())
+	return database.Client().Disconnect(context.Background())
 }
 
-func SetupQuery() (*mongo.Client, string) {
-	return client, dbName
+// GetDB returns the database object
+func GetDB() *mongo.Database {
+	return database
 }

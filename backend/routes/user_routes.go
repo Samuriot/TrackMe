@@ -6,12 +6,12 @@ import (
 )
 
 // SetupProductRoutes configures all product-related routes
-func SetupProductRoutes(app *fiber.App) {
+func SetupProductRoutes(app *fiber.App, handler *handlers.UserHandler) {
 	// Create a route group for products
 	productGroup := app.Group("/api/products")
-	productGroup.Get("/", handlers.GetAllUsers)
-	productGroup.Post("/", handlers.CreateUser)
-	productGroup.Get("/:id", handlers.GetUser)
-	productGroup.Put("/:id", handlers.UpdateUser)
-	productGroup.Delete("/:id", handlers.DeleteUser)
+	productGroup.Get("/", handler.GetAllUsers)
+	productGroup.Post("/", handler.CreateUser)
+	productGroup.Get("/:id", handler.GetUser)
+	productGroup.Put("/:id", handler.UpdateUser)
+	productGroup.Delete("/:id", handler.DeleteUser)
 }
