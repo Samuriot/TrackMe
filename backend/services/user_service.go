@@ -45,7 +45,7 @@ func (s *UserService) CreateUser(ctx context.Context, user *models.User) error {
 	return s.repo.CreateUser(ctx, user)
 }
 
-func (s *UserService) UpdateUser(ctx context.Context, user *models.User) (*models.User, error) {
+func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, user *models.User) (*models.User, error) {
 	updatedUser, err := s.repo.UpdateUser(ctx, user.ID, user)
 	if err != nil {
 		return nil, err

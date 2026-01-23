@@ -1,54 +1,70 @@
 package handlers
 
 import (
+	"errors"
+
 	"github.com/gofiber/fiber/v2"
-	"github.com/samuriot/track-me/db"
 	"github.com/samuriot/track-me/models"
+	"github.com/samuriot/track-me/services"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-func GetUser(c *fiber.Ctx) error {
-	ctx := db.GetMongoContext(c)
-
-	id, err := primitive.ObjectIDFromHex(c.Params("id"))
-	if err != nil {
-		return fiber.ErrBadRequest
-	}
-
-	user, err := db.GetUserByID(ctx, id)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return fiber.ErrNotFound
-		}
-		return fiber.ErrInternalServerError
-	}
-
-	return c.JSON(user)
-}
-
-func GetAllUsers(c *fiber.Ctx) error {
-	ctx := db.GetMongoContext(c)
-	users, err := db.GetAllUsers(ctx)
-	if err != nil {
-		return fiber.ErrInternalServerError
-	}
-	return c.JSON(users)
-}
-
-// TODO: implement these functions later
-func CreateUser(c *fiber.Ctx) error {
-	ctx := db.GetMongoContext(c)
-
-	var payload struct {
+type Payload struct {
 		Username    string   `json:"username"`
 		Email       string   `json:"email"`
 		NetWorth    float64  `json:"net_worth"`
 		Accounts    []string `json:"accounts"`
 		CreditScore int      `json:"credit_score"`
 		Budget      []string `json:"budget"`
+}
+
+// UserHandler handles user-related HTTP requests
+type UserHandler struct {
+	service *services.UserService
+}
+
+// NewUserHandler creates a new UserHandler
+func NewUserHandler(service *services.UserService) *UserHandler {
+	return &UserHandler{service: service}
+}
+
+// GetUser retrieves a user by ID
+func (h *UserHandler) GetUser(c *fiber.Ctx) error {
+	ctx := c.Context()
+	idHex := c.Params("id")
+
+	id, err := primitive.ObjectIDFromHex(idHex)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Invalid Request")
 	}
 
+	user, err := h.service.GetUserByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "User Not Found In DB")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusOK).JSON(user)
+}
+
+func (h *UserHandler) GetAllUsers(c *fiber.Ctx) error {
+	ctx := c.Context()
+	users, err := h.service.GetAllUsers(ctx)
+
+	if err != nil {
+		if errors.Is(err, services.ErrUserNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, "Users Not Found in DB")
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusOK).JSON(users)
+}
+
+func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
+	ctx := c.Context()
+	var payload Payload
 	if err := c.BodyParser(&payload); err != nil {
 		return fiber.ErrBadRequest
 	}
@@ -63,33 +79,26 @@ func CreateUser(c *fiber.Ctx) error {
 		Budget:      payload.Budget,
 	}
 
-	insertedID, err := db.CreateUser(ctx, user)
+	err := h.service.CreateUser(ctx, &user)
 	if err != nil {
 		return fiber.ErrInternalServerError
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"id": insertedID.Hex(),
+		"message": "success",
 	})
 }
 
 // TODO: implement these functions later
-func UpdateUser(c *fiber.Ctx) error {
-	ctx := db.GetMongoContext(c)
+func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
+	ctx := c.Context()
 
 	id, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		return fiber.ErrBadRequest
 	}
 
-	var payload struct {
-		Username    string   `json:"username"`
-		Email       string   `json:"email"`
-		NetWorth    float64  `json:"net_worth"`
-		Accounts    []string `json:"accounts"`
-		CreditScore int      `json:"credit_score"`
-		Budget      []string `json:"budget"`
-	}
+	var payload Payload
 
 	if err := c.BodyParser(&payload); err != nil {
 		return fiber.ErrBadRequest
@@ -104,7 +113,7 @@ func UpdateUser(c *fiber.Ctx) error {
 		Budget:      payload.Budget,
 	}
 
-	user, err := db.UpdateUser(ctx, id, update)
+	user, err := h.service.UpdateUser(ctx, id, &update)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return fiber.ErrNotFound
@@ -112,18 +121,18 @@ func UpdateUser(c *fiber.Ctx) error {
 		return fiber.ErrInternalServerError
 	}
 
-	return c.JSON(user)
+	return c.Status(fiber.StatusAccepted).JSON(user)
 }
 
-func DeleteUser(c *fiber.Ctx) error {
-	ctx := db.GetMongoContext(c)
+func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
+	ctx := c.Context()
 
 	id, err := primitive.ObjectIDFromHex(c.Params("id"))
 	if err != nil {
 		return fiber.ErrBadRequest
 	}
 
-	if err := db.DeleteUserByID(ctx, id); err != nil {
+	if err := h.service.DeleteUserByID(ctx, id); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return fiber.ErrNotFound
 		}
