@@ -22,3 +22,4 @@ HTTP -> Routes -> Middleware -> Handlers -> Service -> Repository -> Database
 - This directory will handle the business logic of the backend. They will handle data validation, business logic rules, etc.
 
 ## Repository
+- This directory will handle querying the Mongo Collection relative to that specific request.
