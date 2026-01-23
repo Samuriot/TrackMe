@@ -1,32 +1,38 @@
 package main
 
 import (
-	"github.com/gofiber/fiber/v2"
-	"github.com/samuriot/track-me/db"
-	"github.com/samuriot/track-me/middleware"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/samuriot/track-me/db"
+	"github.com/samuriot/track-me/handlers"
+	"github.com/samuriot/track-me/middleware"
+	"github.com/samuriot/track-me/repository"
+	"github.com/samuriot/track-me/routes"
+	"github.com/samuriot/track-me/services"
 )
 
 func main() {
-	err := db.Init()
+	mongodb, err := db.Init()
 	if err != nil {
 		log.Fatal("err: no mongoDB connection")
 	}
 
 	// Defer close to ensure MongoDB disconnects on app exit
-	defer func() {
-		if err := db.Close(); err != nil {
-			log.Printf("Error closing MongoDB connection: %v", err)
-		}
-	}()
+	defer db.Close()
 
 	app := fiber.New()
-
 	app.Use(middleware.MongoContextMiddleware(5 * time.Second))
+
+	UserRepository := repository.NewMongoUserRepository(mongodb)
+	userService := services.NewUserService(UserRepository)
+	userHandler := handlers.NewUserHandler(userService)
+
+	routes.SetupProductRoutes(app, userHandler)
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.SendString("Hello World!")
