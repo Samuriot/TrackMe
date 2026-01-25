@@ -54,7 +54,7 @@ func (s *UserService) UpdateUser(ctx context.Context, id primitive.ObjectID, use
 }
 
 func (s *UserService)DeleteUserByID(ctx context.Context, id primitive.ObjectID) error {
-	err := s.DeleteUserByID(ctx, id)
+	err := s.repo.DeleteUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrUserNotFound
